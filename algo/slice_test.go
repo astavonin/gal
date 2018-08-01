@@ -5,6 +5,7 @@ import (
 
 	"fmt"
 
+	"github.com/astavonin/gal/test_data"
 	j "github.com/dave/jennifer/jen"
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -43,26 +44,8 @@ func TestSliceGenerator_genFind(t *testing.T) {
 
 	Convey("[]string case", t, func() {
 		var (
-			find = `func (s *TestStringSlice) Find(val string) int {
-	pos := -1
-	for i := 0; i < len(*s); i++ {
-		if (*s)[i] == val {
-			pos = i
-			break
-		}
-	}
-	return pos
-}`
-			rfind = `func (s *TestStringSlice) RFind(val string) int {
-	pos := -1
-	for i := len(*s); i >= 0; i-- {
-		if (*s)[i] == val {
-			pos = i
-			break
-		}
-	}
-	return pos
-}`
+			find  = test_data.FromFile("slice_find_str")
+			rfind = test_data.FromFile("slice_rfind_str")
 		)
 		comp, inputType := initTypes(true, "string")
 
@@ -83,26 +66,8 @@ func TestSliceGenerator_genFind(t *testing.T) {
 	})
 	Convey("[]*string case", t, func() {
 		var (
-			find = `func (s *TestStringSlice) Find(val string) int {
-	pos := -1
-	for i := 0; i < len(*s); i++ {
-		if *(*s)[i] == val {
-			pos = i
-			break
-		}
-	}
-	return pos
-}`
-			rfind = `func (s *TestStringSlice) RFind(val string) int {
-	pos := -1
-	for i := len(*s); i >= 0; i-- {
-		if *(*s)[i] == val {
-			pos = i
-			break
-		}
-	}
-	return pos
-}`
+			find  = test_data.FromFile("slice_find_pstr")
+			rfind = test_data.FromFile("slice_rfind_pstr")
 		)
 		comp, inputType := initTypes(true, "string")
 
@@ -123,26 +88,8 @@ func TestSliceGenerator_genFind(t *testing.T) {
 	})
 	Convey("[]TestStruct case", t, func() {
 		var (
-			find = `func (s *TestStructSlice) Find(val *TestStruct) int {
-	pos := -1
-	for i := 0; i < len(*s); i++ {
-		if (*s)[i] == *val {
-			pos = i
-			break
-		}
-	}
-	return pos
-}`
-			rfind = `func (s *TestStructSlice) RFind(val *TestStruct) int {
-	pos := -1
-	for i := len(*s); i >= 0; i-- {
-		if (*s)[i] == *val {
-			pos = i
-			break
-		}
-	}
-	return pos
-}`
+			find  = test_data.FromFile("slice_find_struct")
+			rfind = test_data.FromFile("slice_rfind_struct")
 		)
 		comp, inputType := initTypes(false, "TestStruct")
 
@@ -163,26 +110,8 @@ func TestSliceGenerator_genFind(t *testing.T) {
 	})
 	Convey("[]*TestStruct case", t, func() {
 		var (
-			find = `func (s *TestStructSlice) Find(val *TestStruct) int {
-	pos := -1
-	for i := 0; i < len(*s); i++ {
-		if *(*s)[i] == *val {
-			pos = i
-			break
-		}
-	}
-	return pos
-}`
-			rfind = `func (s *TestStructSlice) RFind(val *TestStruct) int {
-	pos := -1
-	for i := len(*s); i >= 0; i-- {
-		if *(*s)[i] == *val {
-			pos = i
-			break
-		}
-	}
-	return pos
-}`
+			find  = test_data.FromFile("slice_find_pstruct")
+			rfind = test_data.FromFile("slice_rfind_pstruct")
 		)
 		comp, inputType := initTypes(false, "TestStruct")
 

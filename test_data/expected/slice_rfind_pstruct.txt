@@ -1,0 +1,10 @@
+func (s *TestStructSlice) RFind(val *TestStruct) int {
+	pos := -1
+	for i := len(*s); i >= 0; i-- {
+		if *(*s)[i] == *val {
+			pos = i
+			break
+		}
+	}
+	return pos
+}

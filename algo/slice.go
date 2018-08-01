@@ -50,7 +50,6 @@ func NewSliceGenerator(tc, tv types.Type) (*SliceGenerator, error) {
 }
 
 func (s *SliceGenerator) Generate() (res string, err error) {
-	//fmt.Println("--->")
 	f := j.NewFile("test")
 	find := s.genFind()
 	rfind := s.genRFind()

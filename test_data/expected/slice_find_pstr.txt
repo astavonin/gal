@@ -1,0 +1,10 @@
+func (s *TestStringSlice) Find(val string) int {
+	pos := -1
+	for i := 0; i < len(*s); i++ {
+		if *(*s)[i] == val {
+			pos = i
+			break
+		}
+	}
+	return pos
+}
