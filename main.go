@@ -52,7 +52,7 @@ func (g *Generator) generate(typesList []string) error {
 	pkg, err := g.parse()
 	if err != nil {
 		return err
-	}https://app.grammarly.com/
+	}
 	typesSet := toStringSet(typesList)
 
 	for _, name := range pkg.Scope().Names() {
