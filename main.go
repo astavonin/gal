@@ -1,79 +1,148 @@
 package main
 
 import (
+	"flag"
 	"fmt"
-	"go/ast"
-	"go/importer"
 	"go/parser"
 	"go/token"
 	"go/types"
 	"log"
+	"path/filepath"
+
+	"go/build"
+
+	"go/ast"
+
+	"go/importer"
 
 	"github.com/astavonin/gal/algo"
 )
 
-func main() {
+type StringSet map[string]struct{}
 
-	callTests()
+type Generator struct {
+	dir   string
+	defs  []string
+	files []string
+}
 
-	fset := token.NewFileSet()
-	f, err := parser.ParseFile(fset, "test_data/test_file.go", nil, parser.ParseComments)
-	if err != nil {
-		panic(err)
+func newGenerator(dir string, defs []string) *Generator {
+	return &Generator{
+		dir:  dir,
+		defs: defs,
 	}
+}
 
-	//ast.Print(fset, node)
-
-	conf := types.Config{Importer: importer.Default()}
-	pkg, err := conf.Check("", fset, []*ast.File{f}, nil)
-	if err != nil {
-		log.Fatal(err) // type error
+func toStringSet(strings []string) StringSet {
+	set := make(StringSet)
+	for _, name := range strings {
+		set[name] = struct{}{}
 	}
+	return set
+}
+
+func (g *Generator) generate(typesList []string) error {
+
+	err := g.buildFilesList()
+	if err != nil {
+		return err
+	}
+	fmt.Println(g.files)
+
+	pkg, err := g.parse()
+	if err != nil {
+		return err
+	}https://app.grammarly.com/
+	typesSet := toStringSet(typesList)
+
 	for _, name := range pkg.Scope().Names() {
+		_, ok := typesSet[name]
+		if !ok {
+			continue
+		}
 		if obj, ok := pkg.Scope().Lookup(name).(*types.TypeName); ok {
+			switch t := obj.Type().Underlying().(type) {
+			case *types.Slice:
+				fmt.Print("Slice:", obj.Type(), "-->", t.Elem())
+				fmt.Println(", cmp: ", types.Comparable(t.Elem()))
 
-			//a, ok := obj.Type().Underlying().(*types.Array)
-			//if ok {
-			//fmt.Println("Array: ", a.Elem())
-			//}
-			s, ok := obj.Type().Underlying().(*types.Slice)
-			if ok {
-				fmt.Print("Slice:", obj.Type(), "-->", s.Elem())
-				fmt.Println(", cmp: ", types.Comparable(s.Elem()))
-
-				g, _ := algo.NewGenerator(obj.Type())
-				g.Generate()
+				sliceGen, _ := algo.NewGenerator(obj.Type())
+				buf, err := sliceGen.Generate()
+				if err != nil {
+					return err
+				}
+				fmt.Println(buf)
+			case *types.Array:
+				fmt.Print("Array:", obj.Type(), "-->", t.Elem())
+				fmt.Println(", cmp: ", types.Comparable(t.Elem()))
 			}
 		}
 	}
-
-	//for _, decl := range f.Decls {
-	//	gen, ok := decl.(*ast.GenDecl)
-	//	if !ok {
-	//		continue
-	//	}
-	//		switch spec := spec.(type) {
-	//		case *ast.TypeSpec:
-	//			switch t := spec.Type.(type) {
-	//			case *ast.ArrayType:
-	//				fmt.Println("ArrayType", spec.Name, t.Elt, reflect.TypeOf(t.Len))
-	//			case *ast.MapType:
-	//				fmt.Println("MapType", spec.Name, t.Key, t.Value)
-	//			}
-	//		}
-	//	}
-	//}
-
+	return nil
 }
 
-func callTests() {
-	//s1 := test_data.TestStringSlice{"a", "ss", "b"}
-	//fmt.Println("TestStringSlice:", s1.Find("ss"))
-	//
-	//s2 := test_data.TestStructSlice{
-	//	test_data.TestStruct{1, "foo"},
-	//	test_data.TestStruct{2, "boo"},
-	//}
-	//s2test := test_data.TestStruct{1, "foo"}
-	//fmt.Println("TestStructSlice:", s2.Find(&s2test))
+func prefixDirectory(directory string, names []string) []string {
+	if directory == "." {
+		return names
+	}
+	ret := make([]string, len(names))
+	for i, name := range names {
+		ret[i] = filepath.Join(directory, name)
+	}
+	return ret
+}
+
+func (g *Generator) buildFilesList() error {
+	ctx := build.Default
+	ctx.BuildTags = g.defs
+
+	pkg, err := ctx.ImportDir(g.dir, 0)
+	if err != nil {
+		return fmt.Errorf("cannot process directory %s: %s", g.dir, err)
+	}
+	var files []string
+	files = append(files, pkg.GoFiles...)
+	files = append(files, pkg.CgoFiles...)
+	files = append(files, pkg.SFiles...)
+
+	g.files = prefixDirectory(g.dir, files)
+
+	return nil
+}
+
+func (g *Generator) parse() (*types.Package, error) {
+
+	fset := token.NewFileSet()
+	var astFiles []*ast.File
+
+	for _, fname := range g.files {
+		f, err := parser.ParseFile(fset, fname, nil, parser.ParseComments)
+		if err != nil {
+			log.Fatalf("parsing error: %s, %s", fname, err)
+		}
+		astFiles = append(astFiles, f)
+	}
+	if len(astFiles) == 0 {
+		return nil, fmt.Errorf("%s: ho Go files found", g.dir)
+	}
+
+	config := types.Config{
+		IgnoreFuncBodies: true,
+		Importer:         importer.For("source", nil),
+		FakeImportC:      true,
+	}
+
+	return config.Check("", fset, astFiles, nil)
+}
+
+func main() {
+	flag.Parse()
+	args := flag.Args()
+	if len(args) == 0 {
+		args = []string{"."}
+	}
+
+	var tags []string
+	g := newGenerator(args[0], tags)
+	g.generate([]string{"TestStructSlice", "TestStringSlice"})
 }

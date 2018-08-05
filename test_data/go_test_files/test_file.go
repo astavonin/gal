@@ -1,4 +1,4 @@
-package test_data
+package go_test_files
 
 type TestStruct struct {
 	A int
@@ -38,16 +38,16 @@ type TestStructSlice []TestStruct
 //}
 
 //
-func (s *TestStructSlice) Find(val *TestStruct) int {
-	pos := -1
-	for i := 0; i < len(*s); i++ {
-		if (*s)[i] == *val {
-			pos = i
-			break
-		}
-	}
-	return pos
-}
+//func (s *TestStructSlice) Find(val *TestStruct) int {
+//	pos := -1
+//	for i := 0; i < len(*s); i++ {
+//		if (*s)[i] == *val {
+//			pos = i
+//			break
+//		}
+//	}
+//	return pos
+//}
 
 //
 //func (s *TestStructPtrSlice) Find(val *TestStruct) int {
