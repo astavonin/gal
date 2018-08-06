@@ -15,6 +15,10 @@ import (
 
 	"go/importer"
 
+	"os"
+
+	"strings"
+
 	"github.com/astavonin/gal/algo"
 )
 
@@ -61,10 +65,10 @@ func (g *Generator) generate(typesList []string) error {
 			continue
 		}
 		if obj, ok := pkg.Scope().Lookup(name).(*types.TypeName); ok {
-			switch t := obj.Type().Underlying().(type) {
+			switch obj.Type().Underlying().(type) {
 			case *types.Slice:
-				fmt.Print("Slice:", obj.Type(), "-->", t.Elem())
-				fmt.Println(", cmp: ", types.Comparable(t.Elem()))
+				//fmt.Print("Slice:", obj.Type(), "-->", t.Elem())
+				//fmt.Println(", cmp: ", types.Comparable(t.Elem()))
 
 				sliceGen, _ := algo.NewGenerator(obj.Type())
 				buf, err := sliceGen.Generate()
@@ -72,9 +76,9 @@ func (g *Generator) generate(typesList []string) error {
 					return err
 				}
 				fmt.Println(buf)
-			case *types.Array:
-				fmt.Print("Array:", obj.Type(), "-->", t.Elem())
-				fmt.Println(", cmp: ", types.Comparable(t.Elem()))
+				//case *types.Array:
+				//	fmt.Print("Array:", obj.Type(), "-->", t.Elem())
+				//	fmt.Println(", cmp: ", types.Comparable(t.Elem()))
 			}
 		}
 	}
@@ -135,14 +139,51 @@ func (g *Generator) parse() (*types.Package, error) {
 	return config.Check("", fset, astFiles, nil)
 }
 
+var (
+	typeNames = flag.String("type", "", "comma-separated list of type names; must be set")
+	//output    = flag.String("output", "", "output file name; default srcdir/<type>_gal.go")
+	buildTags = flag.String("tags", "", "comma-separated list of build tags to apply")
+)
+
+func Usage() {
+	fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
+	fmt.Fprintf(os.Stderr, "\tgal [flags] -type T [directory]\n")
+	fmt.Fprintf(os.Stderr, "Flags:\n")
+	flag.PrintDefaults()
+}
+
+func isDirectory(name string) bool {
+	info, err := os.Stat(name)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return info.IsDir()
+}
+
 func main() {
+	flag.Usage = Usage
 	flag.Parse()
-	args := flag.Args()
-	if len(args) == 0 {
-		args = []string{"."}
+	if len(*typeNames) == 0 {
+		flag.Usage()
+		os.Exit(2)
+	}
+	genTypes := strings.Split(*typeNames, ",")
+	var tags []string
+	if len(*buildTags) > 0 {
+		tags = strings.Split(*buildTags, ",")
 	}
 
-	var tags []string
-	g := newGenerator(args[0], tags)
-	g.generate([]string{"TestStructSlice", "TestStringSlice"})
+	args := flag.Args()
+	if len(args) == 0 {
+		// Default: process whole package in current directory.
+		args = []string{"."}
+	}
+	var dir string
+	if len(args) == 1 && isDirectory(args[0]) {
+		dir = args[0]
+	} else {
+		log.Fatalf("Wrong argiments (%v), should be empty or directory", args)
+	}
+	g := newGenerator(dir, tags)
+	g.generate(genTypes)
 }

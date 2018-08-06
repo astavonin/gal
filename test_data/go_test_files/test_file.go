@@ -7,7 +7,7 @@ type TestStruct struct {
 
 type TestStructSlice []TestStruct
 
-//type TestStringSlice []string
+type TestStringSlice []string
 
 //type TestStructPtrSlice []*TestStruct
 //type TestStringPtrSlice []*string
