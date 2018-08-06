@@ -19,6 +19,10 @@ import (
 
 	"strings"
 
+	"path"
+
+	"io/ioutil"
+
 	"github.com/astavonin/gal/algo"
 )
 
@@ -45,13 +49,12 @@ func toStringSet(strings []string) StringSet {
 	return set
 }
 
-func (g *Generator) generate(typesList []string) error {
-
+func (g *Generator) generate(typesList []string, dir string) error {
+	pkgName := toPkgName(dir)
 	err := g.buildFilesList()
 	if err != nil {
 		return err
 	}
-	fmt.Println(g.files)
 
 	pkg, err := g.parse()
 	if err != nil {
@@ -70,12 +73,19 @@ func (g *Generator) generate(typesList []string) error {
 				//fmt.Print("Slice:", obj.Type(), "-->", t.Elem())
 				//fmt.Println(", cmp: ", types.Comparable(t.Elem()))
 
-				sliceGen, _ := algo.NewGenerator(obj.Type())
+				sliceGen, err := algo.NewGenerator(obj.Type(), pkgName)
+				if err != nil {
+					return err
+				}
 				buf, err := sliceGen.Generate()
 				if err != nil {
 					return err
 				}
-				fmt.Println(buf)
+				outName := path.Join(dir, fmt.Sprintf("%s_gal.go", obj.Type().String()))
+				err = ioutil.WriteFile(outName, []byte(buf), 0644)
+				if err != nil {
+					return err
+				}
 				//case *types.Array:
 				//	fmt.Print("Array:", obj.Type(), "-->", t.Elem())
 				//	fmt.Println(", cmp: ", types.Comparable(t.Elem()))
@@ -160,6 +170,15 @@ func isDirectory(name string) bool {
 	return info.IsDir()
 }
 
+func toPkgName(dir string) string {
+	absPath, err := filepath.Abs(dir)
+	if err != nil {
+		log.Fatalf("Unable generate package name from: %s", dir)
+	}
+	_, pkgName := path.Split(absPath)
+	return pkgName
+}
+
 func main() {
 	flag.Usage = Usage
 	flag.Parse()
@@ -174,16 +193,19 @@ func main() {
 	}
 
 	args := flag.Args()
+	var dir string
 	if len(args) == 0 {
 		// Default: process whole package in current directory.
-		args = []string{"."}
-	}
-	var dir string
-	if len(args) == 1 && isDirectory(args[0]) {
-		dir = args[0]
+		dir = "."
 	} else {
-		log.Fatalf("Wrong argiments (%v), should be empty or directory", args)
+		dir = args[0]
+	}
+	if !isDirectory(dir) {
+		log.Fatalf("Wrong argiments (%v), should be empty or directory", dir)
 	}
 	g := newGenerator(dir, tags)
-	g.generate(genTypes)
+	err := g.generate(genTypes, dir)
+	if err != nil {
+		log.Fatal(err)
+	}
 }

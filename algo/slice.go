@@ -8,6 +8,8 @@ import (
 )
 
 type SliceGenerator struct {
+	pkgName string
+
 	isBasic   bool // inputType is Go basic type
 	isPointer bool // inputType is pointer
 
@@ -27,7 +29,7 @@ func initTypes(isBasic bool, dataType string) (comp, inputType *j.Statement) {
 	return
 }
 
-func NewSliceGenerator(tc, tv types.Type) (*SliceGenerator, error) {
+func NewSliceGenerator(tc, tv types.Type, pkgName string) (*SliceGenerator, error) {
 	ptr, isPointer := tv.(*types.Pointer)
 	_, isBasic := tv.(*types.Basic)
 	dataType := tv.String()
@@ -37,6 +39,8 @@ func NewSliceGenerator(tc, tv types.Type) (*SliceGenerator, error) {
 
 	comp, inputType := initTypes(isBasic, dataType)
 	g := SliceGenerator{
+		pkgName: pkgName,
+
 		isBasic:   isBasic,
 		isPointer: isPointer,
 
@@ -50,7 +54,7 @@ func NewSliceGenerator(tc, tv types.Type) (*SliceGenerator, error) {
 }
 
 func (s *SliceGenerator) Generate() (res string, err error) {
-	f := j.NewFile("test")
+	f := j.NewFile(s.pkgName)
 	find := s.genFind()
 	rfind := s.genRFind()
 
